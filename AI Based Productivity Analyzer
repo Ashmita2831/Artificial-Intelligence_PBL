@@ -1,0 +1,200 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import matplotlib.pyplot as plt
+
+tasks = []
+
+# ---------------- AI LOGIC ----------------
+def calculate_priority(task):
+    name, priority, time = task
+    score = {"High": 3, "Medium": 2, "Low": 1}[priority]
+    score += time / 2
+    return score
+
+# ---------------- FUNCTIONS ----------------
+def add_task():
+    name = task_entry.get()
+    priority = priority_box.get()
+    time = time_entry.get()
+
+    if not name or not time:
+        messagebox.showwarning("Input Error", "Fill all fields")
+        return
+
+    try:
+        time = int(time)
+    except:
+        messagebox.showerror("Error", "Time must be a number")
+        return
+
+    tasks.append((name, priority, time))
+
+    colors = {"High": "#ffadad", "Medium": "#ffd6a5", "Low": "#caffbf"}
+    listbox.insert(tk.END, f"{name} | {priority} | {time} hrs")
+    listbox.itemconfig(tk.END, {'bg': colors[priority]})
+
+    status_var.set(f"Task '{name}' added")
+
+    task_entry.delete(0, tk.END)
+    time_entry.delete(0, tk.END)
+
+def delete_task():
+    selected = listbox.curselection()
+    if not selected:
+        return
+
+    index = selected[0]
+    listbox.delete(index)
+    tasks.pop(index)
+
+    status_var.set("Task deleted")
+
+def clear_tasks():
+    listbox.delete(0, tk.END)
+    tasks.clear()
+    output.delete(1.0, tk.END)
+
+    status_var.set("All tasks cleared")
+
+def show_sorted():
+    if not tasks:
+        messagebox.showinfo("Info", "No tasks available")
+        return
+
+    sorted_tasks = sorted(tasks, key=calculate_priority, reverse=True)
+
+    output.delete(1.0, tk.END)
+    output.insert(tk.END, "Optimized Task Order:\n\n")
+
+    for i, (name, priority, time) in enumerate(sorted_tasks, 1):
+        output.insert(tk.END, f"{i}. {name} | {priority} | {time} hrs\n")
+
+    status_var.set("Tasks optimized successfully")
+
+def show_charts():
+    if not tasks:
+        messagebox.showinfo("Info", "No data available")
+        return
+
+    priorities = {"High": 0, "Medium": 0, "Low": 0}
+    names, times = [], []
+
+    for t in tasks:
+        priorities[t[1]] += 1
+        names.append(t[0])
+        times.append(t[2])
+
+    plt.close('all')  # Fix for charts
+
+    # Pie Chart
+    plt.figure()
+    plt.pie(priorities.values(), labels=priorities.keys(), autopct='%1.1f%%')
+    plt.title("Task Priority Distribution")
+
+    # Bar Chart
+    plt.figure()
+    plt.bar(names, times)
+    plt.title("Time Spent on Tasks")
+    plt.xlabel("Tasks")
+    plt.ylabel("Hours")
+
+    plt.show()
+
+# ---------------- MAIN WINDOW ----------------
+root = tk.Tk()
+root.title("AI Productivity Analyzer")
+root.geometry("900x620")
+root.configure(bg="#f8f9fb")
+
+# ---------------- NAVBAR ----------------
+navbar = tk.Frame(root, bg="#bdb2ff", height=50)
+navbar.pack(fill="x")
+
+tk.Label(navbar, text="AI Productivity Analyzer",
+         font=("Segoe UI", 16, "bold"),
+         bg="#bdb2ff", fg="white").pack(side="left", padx=15)
+
+# ---------------- LEFT PANEL ----------------
+left_frame = tk.Frame(root, bg="#d0ebff", width=260)
+left_frame.pack(side="left", fill="y")
+
+tk.Label(left_frame, text="Task Input",
+         font=("Segoe UI", 14, "bold"),
+         bg="#d0ebff").pack(pady=15)
+
+# Inputs
+tk.Label(left_frame, text="Task Name", bg="#d0ebff").pack(anchor="w", padx=15)
+task_entry = tk.Entry(left_frame)
+task_entry.pack(padx=15, fill="x", pady=5)
+
+tk.Label(left_frame, text="Priority", bg="#d0ebff").pack(anchor="w", padx=15)
+priority_box = ttk.Combobox(left_frame, values=["High", "Medium", "Low"])
+priority_box.pack(padx=15, fill="x", pady=5)
+
+tk.Label(left_frame, text="Time (hrs)", bg="#d0ebff").pack(anchor="w", padx=15)
+time_entry = tk.Entry(left_frame)
+time_entry.pack(padx=15, fill="x", pady=5)
+
+# Hover Button
+def hover(btn, c1, c2):
+    btn.configure(bg=c1, relief="flat", font=("Segoe UI", 10, "bold"))
+    btn.bind("<Enter>", lambda e: btn.config(bg=c2))
+    btn.bind("<Leave>", lambda e: btn.config(bg=c1))
+
+# Buttons
+btn_add = tk.Button(left_frame, text="Add Task", command=add_task)
+hover(btn_add, "#a0c4ff", "#89b4fa")
+btn_add.pack(pady=10, padx=15, fill="x")
+
+btn_sort = tk.Button(left_frame, text="Optimize Tasks", command=show_sorted)
+hover(btn_sort, "#bdb2ff", "#9f94ff")
+btn_sort.pack(pady=5, padx=15, fill="x")
+
+btn_chart = tk.Button(left_frame, text="Show Charts", command=show_charts)
+hover(btn_chart, "#ffc6ff", "#ffadad")
+btn_chart.pack(pady=5, padx=15, fill="x")
+
+btn_delete = tk.Button(left_frame, text="Delete Selected", command=delete_task)
+hover(btn_delete, "#ffd6a5", "#ffb703")
+btn_delete.pack(pady=5, padx=15, fill="x")
+
+btn_clear = tk.Button(left_frame, text="Clear All", command=clear_tasks)
+hover(btn_clear, "#ffadad", "#ff6b6b")
+btn_clear.pack(pady=5, padx=15, fill="x")
+
+# ---------------- RIGHT PANEL ----------------
+right_frame = tk.Frame(root, bg="#f8f9fb")
+right_frame.pack(side="right", expand=True, fill="both")
+
+# Task Card
+task_card = tk.Frame(right_frame, bg="#e7f5ff")
+task_card.pack(padx=20, pady=10, fill="x")
+
+tk.Label(task_card, text="Tasks",
+         font=("Segoe UI", 13, "bold"),
+         bg="#e7f5ff").pack(anchor="w", padx=10, pady=5)
+
+listbox = tk.Listbox(task_card, height=8)
+listbox.pack(fill="x", padx=10, pady=10)
+
+# Output Card
+output_card = tk.Frame(right_frame, bg="#f3f0ff")
+output_card.pack(padx=20, pady=10, fill="both", expand=True)
+
+tk.Label(output_card, text="Result",
+         font=("Segoe UI", 13, "bold"),
+         bg="#f3f0ff").pack(anchor="w", padx=10, pady=5)
+
+output = tk.Text(output_card)
+output.pack(fill="both", padx=10, pady=10)
+
+# ---------------- STATUS BAR ----------------
+status_var = tk.StringVar()
+status_var.set("Ready")
+
+status_bar = tk.Label(root, textvariable=status_var,
+                      bg="#dee2e6", anchor="w")
+status_bar.pack(fill="x")
+
+root.mainloop()
+
